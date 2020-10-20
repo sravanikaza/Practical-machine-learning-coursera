@@ -1,0 +1,170 @@
+---
+title: "Practical machine learning"
+author: "Sravani Kaza"
+date: "10/20/2020"
+output: html_document
+---
+
+Practical machine learning 
+
+
+Introduction
+
+
+Machine learning could truly mark its place in today's society because of the availability of data. With data the generalisation of new data is possible. THis discovery led to many inventions like FitBit,Nike Fuel Band and so on. They basically cllect data on personal activity in large amounts. It is often used to encourage individuals who want to track their exercise in day to improve their health or want to know about a routine that is best suited to them. This data is analysed to infer knowledge from teh data.
+
+For this project, we will be usng data recordd from accelerometrs on the belt, forearm, arm, and dumbbell of 6 participants.
+
+
+Context:
+
+
+We are considering 5 ways to lift barbells(A,B,c,D,E). The participants are asked to perform all teh 5 in correct and incorrect ways.
+
+
+The analysis is done to predict the kind of barbell lift exercise(A,B,C,D,E) 
+
+
+Please find more info  which is available from the website http://groupware.les.inf.puc-rio.br/har 
+
+Large amounts of data in their raw form can be very intmidating. We will analyse the data collected 
+
+
+Sources for collected data
+
+
+Data for training: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+Data for testing:  https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+
+1. Preparation of data:
+
+We start by loadig the data.
+
+Loading both the test and train data.
+```{r load the data}
+URLTrain <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+URLTest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+
+DataForTrain <- read.csv(url(URLTrain),na.strings = c("NA", "#DIV/0!", ""))
+DataFOrTest <- read.csv(url(URLTest),na.strings = c("NA", "#DIV/0!", ""))
+```
+
+
+2.Loading all required libraries:
+
+Our next step will be loading all teh requird library.
+I will be using Random forest algorithm for this classification analysis 
+```{r load libraries}
+library(caret)
+library(ggplot2)
+library(randomForest)
+library(corrplot)
+```
+
+While installing caret package, make sure that you have already installed ggplot2 packgae. Also to properly install caret, make sure that you have already installed latest rlang (0.4.7) or atleast 0.4.6 version.
+
+
+3. Exploration of training data
+
+```{r}
+dim(DataForTrain)
+```
+
+```{r}
+table(DataForTrain$classe)
+```
+The 19622 observations are distributed as shown above. THis gives us an insight about the distribution of all classes.
+
+
+4. Exploration of testing data
+
+```{r}
+dim(DataFOrTest)
+```
+
+5. Data Cleanning
+
+When we look at teh data file of testing data , we see that there are a lot of missing values. Cleaning the data becomes vry crucial in this kind of data set. We always have to look for outliners and NA values as they can influence our analysis at a large extent.
+
+
+```{r}
+# count of NA
+HNA_C = sapply(1:dim(DataForTrain)[2],function(x)sum(is.na(DataForTrain[,x])))
+lis_HNA = which(HNA_C>0)
+colnames(DataForTrain[,c(1:7)])
+```
+
+```{r}
+DataForTrain = DataForTrain[,-lis_HNA]
+DataForTrain = DataForTrain[,-c(1:7)]
+DataForTrain$classe = factor(DataForTrain$classe)
+dim(DataForTrain)
+```
+```{r}
+DataFOrTest = DataFOrTest[,-lis_HNA]
+DataFOrTest = DataFOrTest[,-c(1:7)]
+dim(DataFOrTest)
+```
+On cleaning the data we see that there is considerable reduction in teh no. of variables we are considering in this project. From 160 columns, it is reduced to only 53  columns. While cleaning process, we can remove these columns as they do not have any relevance to the outcome. 
+
+
+For example, time stamp1 , 2 etc have really no relevance to the type of barbell lift they will perform. 
+We can thus safely remove those columns and reduce our processing time
+
+
+Let us look at the data.This is how our data will look like.
+```{r}
+head(DataForTrain)
+```
+
+
+7. Further exploratory analysis
+
+We generally do PCA analyis when we want to reduce dimensions for better learning rates and simplify the matrices involved. 
+Let us correlate the variables 
+
+
+```{r}
+corimatri <- cor(DataForTrain[,-53])
+corrplot(corimatri, method = "color", type = "lower")
+```
+
+We see that many of the squares are of a low contrast, indicating that they have a very low corelation with other variables. The lower the contrast, the less is the correlation
+
+
+Since the correlation is so less, we do not have to reduce the dimensionality. We can perform it if we want to but since the corelation very less for a lot variables, we already have fewer variables to worry about and can directly go ahead for further analyis
+
+
+8. RAndom FOrest algorithm:
+```{r error=TRUE,warning = FALSE,message = FALSE}
+traicont <- trainControl(method = "cv", number = 3, verboseIter=FALSE)
+RandFork <- train(classe ~ ., data = DataForTrain, method = "rf", trControl = traicont)
+RandFork$finalModel
+predictFork <- predict(RandFork, DataFOrTest)
+
+
+confMatFork <- confusionMatrix(predictFork, DataFOrTest$classe)
+
+
+confMatFork
+```
+9. Let us visualise the random forest
+
+```{r}
+randomyFor=randomForest(classe~., data=DataForTrain, method='class')
+predplot = predict(randomyFor,DataFOrTest,type='class') 
+qplot(roll_belt, magnet_dumbbell_y, colour=classe, data=DataForTrain)  
+```
+
+
+
+10. Let us look at the predicted values.
+```{r}
+predicted_test <- predict(RandFork, DataFOrTest)
+predicted_test
+```
