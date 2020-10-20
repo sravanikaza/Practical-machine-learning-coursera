@@ -1,2 +1,2 @@
 # Practical-machine-learning-coursera
-###This a is a report
+The data is provided in the Rmd files.
